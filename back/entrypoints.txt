@@ -1,0 +1,4 @@
+[['https://placester.com/real-estate-marketing-academy/real-estate-definitions',None,None,None,'placester'],
+['https://www.century21.com/glossary','^/glossary.+',None,None,None],
+['https://www.dre.ca.gov/publications/referencebook.html','^/files/pdf/refbook.+','https://www.dre.ca.gov',None,None],
+['https://www.realized1031.com/glossary',None,None,'glossary',None]]

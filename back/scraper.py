@@ -1,35 +1,30 @@
 from html.parser import HTMLParser
 from urllib.request import urlopen
 import re
-import csv
 from PyPDF2 import PdfReader
 from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
 
-HTTP_URL_PATTERN = r'^http[s]*://.+'  # Regex pattern to match a URL
+# Regex pattern to match a URL
+HTTP_URL_PATTERN = r'^http[s]*://.+'
 
-entrypoints = [['https://placester.com/real-estate-marketing-academy/real-estate-definitions',None,None,None,'placester'],
-               ['https://www.century21.com/glossary','^/glossary.+',None,None,None],
-               ['https://www.dre.ca.gov/publications/referencebook.html','^/files/pdf/refbook.+','https://www.dre.ca.gov',None,None],
-               ['https://www.realized1031.com/glossary',None,None,'glossary',None]]
+# List of websites to scrape URLs from
+entrypoints = [['https://www.dre.ca.gov/publications/referencebook.html', '^/files/pdf/refbook.+',
+                'https://www.dre.ca.gov', None, None]]
 
-othersites = ['https://placester.com/real-estate-marketing-academy/real-estate-definitions',
-              'https://learn.g2.com/real-estate-terms',
-              'https://listwithclever.com/real-estate-terms/',
-              'https://theclose.com/real-estate-terms/',
-              'https://www.homecity.com/blog/real-estate-terms/']
+# String to store all website text
+output = ''
 
-textdump = ''
 
 def remove_duplicate_newlines(s):
     return re.sub(r'(\n)+', r'\n', s)
 
 
+# Obtains text content from body of an HTML page
 def get_text(url):
     # Send a request to the URL and get the HTML content
     response = requests.get(url)
-
     html_content = response.content
 
     # Use BeautifulSoup to parse the HTML content
@@ -46,15 +41,14 @@ def get_text(url):
         footer.extract()
     soup.prettify()
 
-    # Find the remaining text on the webpage
+    # Find and return the remaining text on the webpage
     text = soup.get_text()
     text = remove_duplicate_newlines(text)
-    return(text)
+    return text
 
+
+# Obtains text from URLs containing PDFs
 def get_pdf_text(url):
-    # Download the PDF file
-    # url = "https://www.dre.ca.gov/files/pdf/refbook/ref06.pdf"
-
     # Send a GET request to the URL and get the response object
     response = requests.get(url)
 
@@ -69,8 +63,19 @@ def get_pdf_text(url):
     for page in pdf_reader.pages:
         text += page.extract_text()
 
-    # Print the extracted text
+    # Return the extracted text
     return text
+
+
+# Tests to determine whether a URL is a PDF document
+def is_pdf_url(url):
+    try:
+        response = requests.head(url)
+        content_type = response.headers.get('Content-Type', '').lower()
+        return 'application/pdf' in content_type
+    except requests.exceptions.RequestException:
+        return False
+
 
 class LinkParser(HTMLParser):
     def __init__(self):
@@ -81,70 +86,67 @@ class LinkParser(HTMLParser):
         if tag == 'a':
             for attr in attrs:
                 if attr[0] == 'href':
-                    # if re.search(HTTP_URL_PATTERN, attr[1]):
-                    #    res = re.sub(r'\?.*', "", attr[1])
                     self.links.append(attr[1])
 
 
-def get_links(url, pattern, alt_url,keyword,avoid):
+def get_links(url, pattern, alt_url, kword, avoided):
     response = urlopen(url)
     html = response.read()
     parser = LinkParser()
     parser.feed(html.decode())
-    if alt_url == None:
+
+    if alt_url is None:
         alt_url = url
+
     items = []
+
     if pattern:
-        for link in parser.links:
-            if re.search(pattern, link):
-                items.append(alt_url + link)
+        for url in parser.links:
+            if re.search(pattern, url):
+                items.append(alt_url + url)
     else:
         pattern = HTTP_URL_PATTERN
-        for link in parser.links:
-            if re.search(pattern, link):
-                items.append(link)
-    if keyword:
+        for url in parser.links:
+            if re.search(pattern, url):
+                items.append(url)
+
+    if kword:
         new_items = []
         for item in items:
-            if keyword in item:
+            if kword in item:
                 new_items.append(item)
         items = new_items
-    if avoid:
+
+    if avoided:
         new_items = []
         for item in items:
-            if avoid not in item:
+            if avoided not in item:
                 new_items.append(item)
         items = new_items
+
     return items
 
 
 # Usage
 links = []
-for site, pattern, alt_url, keyword, avoid in entrypoints:
-    if pattern:
-        pattern = pattern.strip('"')
-    newlinks = get_links(site, pattern, alt_url, keyword, avoid)
+for site, urlpattern, alternate_url, keyword, avoid in entrypoints:
+    if urlpattern:
+        urlpattern = urlpattern.strip('"')
+    newlinks = get_links(site, urlpattern, alternate_url, keyword, avoid)
     links = links + newlinks
-#    print(links)
 
 for link in links:
-    if link[-3:] == "pdf":
+    if is_pdf_url(link):
         content = get_pdf_text(link)
-        textdump = textdump + content
+        output = output + content
     else:
-        pass
+        content = get_text(link)
+        output = output + content
+
 
 # Specify the file path for the scraper's output
 file_path = "output.txt"
 
 # Open the file in write mode and save the output
 with open(file_path, "w") as file:
-    file.write(textdump)
-
-# print(f'Estimated embedding cost: ${1000000/ 0.75 / 1000 * 0.0004:.2f}')
-
-# url = "https://www.dre.ca.gov/files/pdf/refbook/ref06.pdf"
-# url = "https://www.century21.com/glossary"
-#txt = get_text(url)
-# text2 = get_pdf_text()
-# print(txt)
+    file.write(output)
