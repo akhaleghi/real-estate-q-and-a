@@ -20,6 +20,7 @@ othersites = ['https://placester.com/real-estate-marketing-academy/real-estate-d
               'https://theclose.com/real-estate-terms/',
               'https://www.homecity.com/blog/real-estate-terms/']
 
+textdump = ''
 
 def remove_duplicate_newlines(s):
     return re.sub(r'(\n)+', r'\n', s)
@@ -50,9 +51,9 @@ def get_text(url):
     text = remove_duplicate_newlines(text)
     return(text)
 
-def get_pdf_text():
+def get_pdf_text(url):
     # Download the PDF file
-    url = "https://www.dre.ca.gov/files/pdf/refbook/ref06.pdf"
+    # url = "https://www.dre.ca.gov/files/pdf/refbook/ref06.pdf"
 
     # Send a GET request to the URL and get the response object
     response = requests.get(url)
@@ -69,7 +70,7 @@ def get_pdf_text():
         text += page.extract_text()
 
     # Print the extracted text
-    print(text)
+    return text
 
 class LinkParser(HTMLParser):
     def __init__(self):
@@ -118,15 +119,32 @@ def get_links(url, pattern, alt_url,keyword,avoid):
 
 
 # Usage
+links = []
 for site, pattern, alt_url, keyword, avoid in entrypoints:
     if pattern:
         pattern = pattern.strip('"')
-    links = get_links(site, pattern, alt_url, keyword, avoid)
-    print(links)
+    newlinks = get_links(site, pattern, alt_url, keyword, avoid)
+    links = links + newlinks
+#    print(links)
+
+for link in links:
+    if link[-3:] == "pdf":
+        content = get_pdf_text(link)
+        textdump = textdump + content
+    else:
+        pass
+
+# Specify the file path for the scraper's output
+file_path = "output.txt"
+
+# Open the file in write mode and save the output
+with open(file_path, "w") as file:
+    file.write(textdump)
 
 # print(f'Estimated embedding cost: ${1000000/ 0.75 / 1000 * 0.0004:.2f}')
 
-#url = "https://www.dre.ca.gov/files/pdf/refbook/ref06.pdf"
+# url = "https://www.dre.ca.gov/files/pdf/refbook/ref06.pdf"
+# url = "https://www.century21.com/glossary"
 #txt = get_text(url)
-#text2 = get_pdf_text()
-#print(text2)
+# text2 = get_pdf_text()
+# print(txt)
