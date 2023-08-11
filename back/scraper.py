@@ -5,13 +5,14 @@ from PyPDF2 import PdfReader
 from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
+import os
 
 # Regex pattern to match a URL
 HTTP_URL_PATTERN = r'^http[s]*://.+'
 
 # List of websites to scrape URLs from
-entrypoints = [['https://www.dre.ca.gov/publications/referencebook.html', '^/files/pdf/refbook.+',
-                'https://www.dre.ca.gov', None, None]]
+entrypoints = [['https://www.realized1031.com/glossary',
+                None,None,'glossary',None]]
 
 # String to store all website text
 output = ''
@@ -136,17 +137,18 @@ for site, urlpattern, alternate_url, keyword, avoid in entrypoints:
     links = links + newlinks
 
 for link in links:
+    site_content = ''
+
     if is_pdf_url(link):
-        content = get_pdf_text(link)
-        output = output + content
+        site_content = get_pdf_text(link)
     else:
-        content = get_text(link)
-        output = output + content
+        site_content = get_text(link)
 
+    # Remove blank lines from the string
+    lines = site_content.split('\n')
+    non_empty_lines = [line for line in lines if line.strip() != ""]
+    final_content = '\n'.join(non_empty_lines)
 
-# Specify the file path for the scraper's output
-file_path = "output.txt"
-
-# Open the file in write mode and save the output
-with open(file_path, "w") as file:
-    file.write(output)
+    # Open the file in write mode and save the output
+    with open('text/' + link[12:].replace("/", "_").replace(".", "") + ".txt", "w") as f:
+        f.write(final_content)

@@ -1,4 +1,20 @@
+from transformers import GPT2Tokenizer
+
+# Load the GPT-2 tokenizer
+tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+
+# Text to tokenize
+input_text = "Hello, how are you doing today? My name is Sam Smith and I am ready to sing"
+
+# Tokenize the input text
+encoded_input = tokenizer.encode(input_text, return_tensors="pt")
+
+# Print the token IDs
+print("Encoded input:", encoded_input)
+
+
 # Run scraper.py to create output.txt
+# Run cleantext.py to remove unusable content
 # Embed the additional text so it can be used to fine tune an existing ChatGPT model
 
 '''
