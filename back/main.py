@@ -1,3 +1,23 @@
+import scraper as sc
+import cleantext as ct
+import processtext as pt
+import tokenizer as tk
+
+
+def pipeline():
+
+    print("start")
+
+    # sc.scraper()
+    ct.cleantext()
+    pt.processtext()
+    tk.tokenizer()
+
+    print("Done")
+
+pipeline()
+
+'''
 from transformers import GPT2Tokenizer
 
 # Load the GPT-2 tokenizer
@@ -17,7 +37,6 @@ print("Encoded input:", encoded_input)
 # Run cleantext.py to remove unusable content
 # Embed the additional text so it can be used to fine tune an existing ChatGPT model
 
-'''
 To embed additional text to train a ChatGPT model, you can follow these general steps:
 Collect Additional Text: Gather the additional text you want to use to fine-tune or
 train the ChatGPT model. This text should be relevant to the domain or context you want

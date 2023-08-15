@@ -128,27 +128,29 @@ def get_links(url, pattern, alt_url, kword, avoided):
     return items
 
 
-# Usage
-links = []
-for site, urlpattern, alternate_url, keyword, avoid in entrypoints:
-    if urlpattern:
-        urlpattern = urlpattern.strip('"')
-    newlinks = get_links(site, urlpattern, alternate_url, keyword, avoid)
-    links = links + newlinks
+def scraper():
+    links = []
+    for site, urlpattern, alternate_url, keyword, avoid in entrypoints:
+        if urlpattern:
+            urlpattern = urlpattern.strip('"')
+        newlinks = get_links(site, urlpattern, alternate_url, keyword, avoid)
+        links = links + newlinks
 
-for link in links:
-    site_content = ''
+    for link in links:
+        site_content = ''
 
-    if is_pdf_url(link):
-        site_content = get_pdf_text(link)
-    else:
-        site_content = get_text(link)
+        if is_pdf_url(link):
+            site_content = get_pdf_text(link)
+        else:
+            site_content = get_text(link)
 
-    # Remove blank lines from the string
-    lines = site_content.split('\n')
-    non_empty_lines = [line for line in lines if line.strip() != ""]
-    final_content = '\n'.join(non_empty_lines)
+        # Remove blank lines from the string
+        lines = site_content.split('\n')
+        non_empty_lines = [line for line in lines if line.strip() != ""]
+        final_content = '\n'.join(non_empty_lines)
 
-    # Open the file in write mode and save the output
-    with open('text/' + link[12:].replace("/", "_").replace(".", "") + ".txt", "w") as f:
-        f.write(final_content)
+        # Open the file in write mode and save the output
+        with open('text/' + link[12:].replace("/", "_").replace(".", "") + ".txt", "w") as f:
+            f.write(final_content)
+
+    print("Scraping complete")

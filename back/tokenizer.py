@@ -1,36 +1,39 @@
+import requests
+import re
+import urllib.request
+from bs4 import BeautifulSoup
+from collections import deque
+from html.parser import HTMLParser
+from urllib.parse import urlparse
 import os
 import pandas as pd
-
-domains = ['drecagov', 'realized1031']
-
-# Create a list to store the text files
-texts = []
-
-
-def remove_newlines(serie):
-    serie = serie.str.replace('\n', ' ')
-    serie = serie.str.replace('\\n', ' ')
-    serie = serie.str.replace('  ', ' ')
-    serie = serie.str.replace('  ', ' ')
-    return serie
+import tiktoken
+import openai
+import numpy as np
+from openai.embeddings_utils import distances_from_embeddings, cosine_similarity
+from ast import literal_eval
+import matplotlib.pyplot as plt
 
 
-for domain in domains:
+def tokenizer():
+    # Load the cl100k_base tokenizer which is designed to work with the ada-002 model
+    tokenizer = tiktoken.get_encoding("cl100k_base")
 
-    # Get all the text files in the text directory
-    for file in os.listdir("text/" + domain + "/"):
+    df = pd.read_csv('processed/scraped.csv', index_col=0)
 
-        # Open the file and read the text
-        with open("text/" + domain + "/" + file, "r", encoding="UTF-8") as f:
-            text = f.read()
-            texts.append(text)
+    # Assuming the 'text' column might have non-string values, convert them to strings
+    df['text'] = df['text'].astype(str)
+    df.columns = ['title', 'text']
 
-    # Create a dataframe from the list of texts
-    df = pd.DataFrame(texts, columns=['fname', 'text'])
+    # Tokenize the text and save the number of tokens to a new column
+    df['n_tokens'] = df.text.apply(lambda x: len(tokenizer.encode(x)))
 
-    # Set the text column to be the raw text with the newlines removed
-    df['text'] = df.fname + ". " + remove_newlines(df.text)
-    df.to_csv('processed/scraped.csv')
-    df.head()
+    # print(df.head())
 
-# https://github.com/openai/openai-cookbook/blob/main/apps/web-crawl-q-and-a/web-qa.py
+    # Visualize the distribution of the number of tokens per row using a histogram
+    # df.n_tokens.hist()
+
+    print("Tokenization complete")
+
+
+
