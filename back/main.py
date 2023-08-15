@@ -6,14 +6,14 @@ import tokenizer as tk
 
 def pipeline():
 
-    print("start")
+    print("Start")
 
     # sc.scraper()
     ct.cleantext()
     pt.processtext()
     tk.tokenizer()
 
-    print("Done")
+    print("Done!")
 
 pipeline()
 
