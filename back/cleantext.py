@@ -20,5 +20,5 @@ def cleantext():
             # Open the file for writing (this will overwrite the file)
             with open(file_path, "w") as file:
                 file.write(updated_content)
-    print("Text cleaning complete")
+
 

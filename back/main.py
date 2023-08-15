@@ -2,109 +2,102 @@ import scraper as sc
 import cleantext as ct
 import processtext as pt
 import tokenizer as tk
+import openai
+from openai.embeddings_utils import distances_from_embeddings, cosine_similarity
+import pandas as pd
 
 
-def pipeline():
+def create_context(
+        question, df, max_len=1800, size="ada"
+):
+    """
+    Create a context for a question by finding the most similar context from the dataframe
+    """
 
-    print("Start")
+    # Get the embeddings for the question
+    q_embeddings = openai.Embedding.create(input=question, engine='text-embedding-ada-002')['data'][0]['embedding']
 
+    # Get the distances from the embeddings
+    df['distances'] = distances_from_embeddings(q_embeddings, df['embeddings'].values, distance_metric='cosine')
+
+    returns = []
+    cur_len = 0
+
+    # Sort by distance and add the text to the context until the context is too long
+    for i, row in df.sort_values('distances', ascending=True).iterrows():
+
+        # Add the length of the text to the current length
+        cur_len += row['n_tokens'] + 4
+
+        # If the context is too long, break
+        if cur_len > max_len:
+            break
+
+        # Else add it to the text that is being returned
+        returns.append(row["text"])
+
+    # Return the context
+    return "\n\n###\n\n".join(returns)
+
+
+def answer_question(
+    df,
+    model="text-davinci-003",
+    question="What is a 1031 exchange?",
+    max_len=1800,
+    size="ada",
+    debug=False,
+    max_tokens=150,
+    stop_sequence=None
+):
+    """
+    Answer a question based on the most similar context from the dataframe texts
+    """
+    context = create_context(
+        question,
+        df,
+        max_len=max_len,
+        size=size,
+    )
+    # If debug, print the raw model response
+    if debug:
+        print("Context:\n" + context)
+        print("\n\n")
+
+    try:
+        # Create a completions using the questin and context
+        response = openai.Completion.create(
+            prompt=f"Answer the question based on the context below, and if the question can't be answered based on the "
+                   f"context, say \"I don't know\"\n\nContext: {context}\n\n---\n\nQuestion: {question}\nAnswer:",
+            temperature=0,
+            max_tokens=max_tokens,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0,
+            stop=stop_sequence,
+            model=model,
+        )
+        return response["choices"][0]["text"].strip()
+    except Exception as e:
+        print(e)
+        return ""
+
+
+def build_model():
     # sc.scraper()
-    ct.cleantext()
-    pt.processtext()
-    tk.tokenizer()
-
-    print("Done!")
-
-pipeline()
-
-'''
-from transformers import GPT2Tokenizer
-
-# Load the GPT-2 tokenizer
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-
-# Text to tokenize
-input_text = "Hello, how are you doing today? My name is Sam Smith and I am ready to sing"
-
-# Tokenize the input text
-encoded_input = tokenizer.encode(input_text, return_tensors="pt")
-
-# Print the token IDs
-print("Encoded input:", encoded_input)
+    # print("Scraping complete")
+    # ct.cleantext()
+    # print("Text cleaning complete")
+    # pt.processtext()
+    # print("Text processing complete")
+    df = tk.tokenizer()
+    # print("Tokenization and embedding complete")
+    print("Model building complete.")
+    return df
 
 
-# Run scraper.py to create output.txt
-# Run cleantext.py to remove unusable content
-# Embed the additional text so it can be used to fine tune an existing ChatGPT model
+df = build_model()
 
-To embed additional text to train a ChatGPT model, you can follow these general steps:
-Collect Additional Text: Gather the additional text you want to use to fine-tune or
-train the ChatGPT model. This text should be relevant to the domain or context you want
-the model to perform better in.
+print(answer_question(df, question="What day is it?", debug=False))
 
-Data Preprocessing: Preprocess the additional text data. This might include cleaning the
-text, removing irrelevant parts, and formatting it appropriately.
-
-Fine-tuning (Optional): If you have access to the base pre-trained ChatGPT model, you can
-fine-tune it on your additional text. Fine-tuning helps the model adapt to your specific
-use case. You can use the Hugging Face transformers library for this purpose.
-
-from transformers import GPT2LMHeadModel, GPT2Tokenizer, TextDataset, DataCollatorForLanguageModeling, TrainingArguments, Trainer
-
-# Load the pre-trained model and tokenizer
-model_name = "gpt2"  # or any other GPT-2 variant
-model = GPT2LMHeadModel.from_pretrained(model_name)
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-
-# Preprocess and tokenize your additional text data
-additional_text = [...]  # Your additional text data
-encoded_data = tokenizer(additional_text, return_tensors="pt", padding=True, truncation=True)
-
-# Create a TextDataset and DataCollator
-dataset = TextDataset(encoded_data)
-data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
-
-# Fine-tuning arguments
-training_args = TrainingArguments(
-    output_dir="./fine-tuned-model",
-    overwrite_output_dir=True,
-    num_train_epochs=3,
-    per_device_train_batch_size=4,
-    save_total_limit=2,
-)
-
-# Create a Trainer and start fine-tuning
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    data_collator=data_collator,
-    train_dataset=dataset,
-)
-
-trainer.train()
-
-Training from Scratch (Optional): If you want to train a model from scratch, you can
-use a similar approach as above, but you'll need to create a custom language modeling
-architecture and adjust the training parameters accordingly.
-
-Remember that training a language model, especially from scratch, can be resource-
-intensive and time-consuming. It's recommended to have a good understanding of deep
-learning concepts and access to sufficient computational resources.
-
-Evaluation and Testing: After fine-tuning or training, evaluate the model's performance
-on a validation set or conduct user testing to ensure the model generates the desired
-responses accurately.
-
-Deployment: Once you're satisfied with the model's performance, you can deploy it for
-inference in your applications. Use the transformers library to load the fine-tuned
-model and generate responses to user input.
-
-Keep in mind that the success of training or fine-tuning a model greatly depends on the
-quality and relevance of the additional text data you provide. It's important to
-carefully curate and preprocess this data for optimal results.
-'''
-
-
-
-
-
+print(answer_question(df, question="What is our newest embeddings model?"))

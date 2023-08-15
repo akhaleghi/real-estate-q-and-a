@@ -35,4 +35,4 @@ def processtext():
         df.to_csv('processed/scraped.csv')
         df.head()
 
-    print("Text processing complete")
+

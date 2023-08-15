@@ -153,4 +153,3 @@ def scraper():
         with open('text/' + link[12:].replace("/", "_").replace(".", "") + ".txt", "w") as f:
             f.write(final_content)
 
-    print("Scraping complete")
